@@ -38,6 +38,7 @@ const registerUser = async (req, res, next) =>{
     const address = req.body.address
     const phone = req.body.phone
     const email = req.body.email
+    const role = req.body.role
     const isEmail = validator.isEmail(email)
     if (isEmail) {
         const [users] = await db.query('select * from user where username = ? limit 1', [username])
@@ -46,8 +47,8 @@ const registerUser = async (req, res, next) =>{
                 [email])
             if (rows.length == 0) {
                 const password = await bcrypt.hash(req.body.password, 11)
-                db.query('insert into user(username, address, nickname, phone, email, password) values(?,?,?,?,?,?)',
-                    [username, address, nickname, phone, email, password])
+                db.query('insert into user(username, address, nickname, phone, email, password, role) values(?,?,?,?,?,?,?)',
+                    [username, address, nickname, phone, email, password, role])
                     .then(()=>{
                         res.json({
                             "success" :true,
@@ -91,7 +92,8 @@ const loginUser = async (req, res, next) => {
         if (isVerified) {
             const payload = {
                 "id_user": user.id,
-                "username": user.username
+                "username": user.username,
+                "role" : user.role
             }
             const token = await jwt.sign(payload, JWT_KEY)
             if (token) {
@@ -153,68 +155,25 @@ const updatePassword = async (req, res, next)=>{
         })
 }
 
-const admin = async(req, res, next)=>{
-    const name = req.body.name
-    const [rows] = await db.query('select * from admin where name = ? limit 1', [name])
-    if(rows.length == 0){
-        const password = req.body.password
-        const confirm = req.body.confirm
-        if(password == confirm){
-            const hashedPassword = await bcrypt.hash(password, 11)
-            db.query('insert into admin(name, password) values(?,?)',
-                [name, hashedPassword])
-                .then(()=>{
-                    res.json({
-                        "success" :true,
-                        "message" : "admin registered"
-                    })
-                })
-                .catch((err)=>{
-                    res.status(500)
-                    res.json({
-                        "success" : false,
-                        "error" : err
-                    })
-                })
-        }else{
-            res.status(409)
-            const error = new Error("Wrong Confirmation")
-            next(error)
-        }
-    }else{
-        res.status(409)
-        const error = new Error("admin already registered")
-        next (error)
-    }
-}
-
 const deleteUser = async (req, res, next)=>{
-    const name = req.body.name
-    const [rows] = await db.query('select * from admin where name = ?', [name])
-    if(rows.length != 0){
-        const admin = rows[0]
-        const password = req.body.pasword
-        const result = bcrypt.compare(password, admin.password)
-        if(result){
-            const username = req.body.username
-            db.query('delete from user where username = ?', [username])
-            .then(()=>{
-                res.json({
-                    "success" : true,
-                    "message" : "delete success"
-                })
+    const token = req.headers.authorization.split(" ")[1]
+    const verify = jwt.verify(token, process.env.JWT_KEY)
+    if(verify.role == 1){
+        const username = req.body.username
+        db.query('delete from user where username = ?', [username])
+        .then(()=>{
+            res.json({
+                "success" : true,
+                "message" : "delete success"
             })
-            .catch(()=>{
-                res.status(404)
-                const error = new Error("User not found")
-                next(error)
-            })
-        }else{
-            const error = new Error("Wrong password")
+        })
+        .catch(()=>{
+            res.status(404)
+            const error = new Error("User not found")
             next(error)
-        }
+        })
     }else{
-        const error = new Error("admin not registered")
+        const error = new Error("not an admin")
         next(error)
     }
 }
@@ -226,7 +185,6 @@ const userController = {
     updateUserName,
     loginUser,
     updatePassword,
-    admin,
     deleteUser
 }
 

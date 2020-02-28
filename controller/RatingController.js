@@ -1,21 +1,6 @@
 const db = require('../database')
 
 
-const getRatingById = async(req, res, next)=>{
-    const id = req.params.id
-    const [rows] = await db.query('select * from rating where id = ?', [id])
-    if(rows.length > 0){
-        res.json({
-            "success" : true,
-            "rating" : rows[0]
-        })
-    }else{
-        res.status(404)
-        const error = new Error("Rating not found")
-        next(error)
-    }
-}
-
 const getPostRating = async(req, res, next)=>{
     const id_post = req.params.id_post
     const [result] = await db.query('select postRating from post where id = ?', [id_post])
@@ -111,7 +96,6 @@ const ratingController = {
     changeRating,
     totalPostRating,
     deleteRating,
-    getRatingById,
     getPostRating
 }
 

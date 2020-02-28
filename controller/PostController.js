@@ -37,10 +37,11 @@ const postPost = (req, res, next)=>{
     const itemName = req.body.itemName
     const description = req.body.description
     const readyAt = req.body.readyAt
+    const stock_type = req.body.stock_type
     const stock = req.body.stock
     const image = "image/" + filename
     const price = req.body.price
-    db.query('insert into post(id_user, itemName, description, readyAt, stock, price, image) values(?, ?, ?, ?, ?, ?, ?)', [id_user, itemName, description, readyAt, stock, price, image])
+    db.query('insert into post(id_user, itemName, description, readyAt, stock, price, image, stock_type, priceDiscounted) values(?, ?, ?, ?, ?, ?, ?, ?, ?)', [id_user, itemName, description, readyAt, stock, price, image, stock_type, price])
         .then(()=>{
             res.json({
                 "success" : true,
